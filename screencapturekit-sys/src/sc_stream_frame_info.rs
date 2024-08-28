@@ -31,11 +31,12 @@ impl SCStreamFrameInfo {
     pub fn status(&self) -> SCFrameStatus {
         unsafe {
             let key = NSString::from_str("SCStreamUpdateFrameStatus");
-            let raw_status: *mut NSValue<i32> = msg_send!(self, objectForKey: key);
+            let raw_status: *mut NSValue<i32> = msg_send![self, objectForKey:key];
             if raw_status.is_null() {
                 return SCFrameStatus::Idle;
             }
-            mem::transmute((*raw_status).value())
+            let status: i32 = msg_send![raw_status, intValue];
+            mem::transmute(status)
         }
     }
 }
