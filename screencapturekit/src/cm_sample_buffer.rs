@@ -17,7 +17,10 @@ pub struct CMSampleBuffer {
 
 impl CMSampleBuffer {
     pub fn new(sys_ref: Id<CMSampleBufferRef>) -> Self {
-        let frame_status = sys_ref.get_frame_info().status();
+        let frame_status = sys_ref
+            .get_frame_info()
+            .map(|info| info.status())
+            .unwrap_or(SCFrameStatus::Idle);
         let image_buf_ref = sys_ref.get_image_buffer();
         let pixel_buffer = image_buf_ref
             .as_ref()
