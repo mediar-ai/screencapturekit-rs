@@ -2,8 +2,6 @@ use std::mem;
 
 use objc::{Message, *};
 use objc_foundation::{INSString, INSValue, NSString, NSValue};
-use objc_id::Id;
-use runtime::Object;
 #[derive(Debug)]
 #[repr(C)]
 pub struct SCStreamFrameInfo {
@@ -32,15 +30,12 @@ unsafe impl Message for SCStreamFrameInfo {}
 impl SCStreamFrameInfo {
     pub fn status(&self) -> SCFrameStatus {
         unsafe {
-            let key: Id<NSString> = NSString::from_str("SCStreamUpdateFrameStatus");
-            let raw_status: *mut Object = msg_send![self, objectForKey:&*key];
+            let key = NSString::from_str("SCStreamUpdateFrameStatus");
+            let raw_status: *mut NSValue<i32> = msg_send!(self, objectForKey: key);
             if raw_status.is_null() {
                 return SCFrameStatus::Idle;
             }
-            let value: Id<NSValue<i32>> =
-                Id::from_ptr(raw_status as *mut Object as *mut NSValue<i32>);
-            let status: i32 = msg_send![&*value, intValue];
-            mem::transmute(status)
+            mem::transmute((*raw_status).value())
         }
     }
 }
