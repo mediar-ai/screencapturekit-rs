@@ -1,5 +1,5 @@
 use objc::{runtime::Object, *};
-use objc_id::{Id, ShareId};
+use objc_id::{Id, ShareId, WeakId};
 use std::alloc;
 use std::ffi::c_void;
 use std::ptr::null_mut;
@@ -20,7 +20,7 @@ declare_ref_type!(CMSampleBufferRef);
 impl CMSampleBufferRef {
     pub fn get_frame_info(&self) -> Option<Id<SCStreamFrameInfo>> {
         unsafe {
-            let raw_attachments_array = CMSampleBufferGetSampleAttachmentsArray(self, 1);
+            let raw_attachments_array = CMSampleBufferGetSampleAttachmentsArray(self, 0);
             if raw_attachments_array.is_null() {
                 return None;
             }

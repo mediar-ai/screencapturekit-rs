@@ -32,13 +32,12 @@ unsafe impl Message for SCStreamFrameInfo {}
 impl SCStreamFrameInfo {
     pub fn status(&self) -> SCFrameStatus {
         unsafe {
-            let key: Id<NSString> = NSString::from_str("SCStreamUpdateFrameStatus");
+            let key = NSString::from_str("SCStreamUpdateFrameStatus");
             let raw_status: *mut Object = msg_send![self, objectForKey:&*key];
             if raw_status.is_null() {
                 return SCFrameStatus::Idle;
             }
-            let value: Id<NSValue<i32>> = Id::from_ptr(raw_status as *mut _);
-            let status: i32 = msg_send![&*value, intValue];
+            let status: i32 = msg_send![raw_status, intValue];
             mem::transmute(status)
         }
     }
