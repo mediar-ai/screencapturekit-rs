@@ -20,9 +20,9 @@ declare_ref_type!(CMSampleBufferRef);
 impl CMSampleBufferRef {
     pub fn get_frame_info(&self) -> Id<SCStreamFrameInfo> {
         unsafe {
-            let raw_attachments_array = CMSampleBufferGetSampleAttachmentsArray(self, 1);
-            let first = msg_send![raw_attachments_array, firstObject];
-            Id::from_ptr(first)
+            let raw_attachments_array = CMSampleBufferGetSampleAttachmentsArray(self, 0);
+            let first: *mut SCStreamFrameInfo = msg_send![raw_attachments_array, firstObject];
+            Id::from_retained_ptr(first)
         }
     }
 
