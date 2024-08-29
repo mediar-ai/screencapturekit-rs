@@ -39,32 +39,23 @@ fn main() {
     println!("Starting");
     // Create SCShareableContent and SCContentFilter
     let display = SCShareableContent::current().displays.pop().unwrap();
-    // let windows = SCShareableContent::current().windows;
-    // let _filter = SCContentFilter::new(InitParams::DisplayExcludingWindows(display, windows));
-    // let display = SCShareableContent::current().displays.pop().unwrap();
-    // let _filter = SCContentFilter::new(InitParams::Display(display));
-    // let _filter = SCContentFilter::new(InitParams::DisplayExcludingWindows(display, vec![]));
-    // unsafe {
-    //     let unsafe_display = UnsafeSCShareableContent::displays()
-    //         .unwrap()
-    //         .first()
-    //         .unwrap();
-    //     let _filter = UnsafeContentFilter::init(UnsafeInitParams::Display(display));
-    // }
+    let windows = SCShareableContent::current().windows;
+    let _filter = SCContentFilter::new(InitParams::DisplayExcludingWindows(display, windows));
+    let display = SCShareableContent::current().displays.pop().unwrap();
+    let display = SCShareableContent::current().displays.pop().unwrap();
+
+    let _filter = SCContentFilter::new(InitParams::Display(display));
+    let display = SCShareableContent::current().displays.pop().unwrap();
+
+    let _filter = SCContentFilter::new(InitParams::DisplayExcludingWindows(display, vec![]));
+    
     let config = SCStreamConfiguration {
         width: 1920,
         height: 1080,
-        captures_audio: true,
-        pixel_format: PixelFormat::ARGB8888,
-        scales_to_fit: true,
-        shows_cursor: true,
-        preserves_aspect_ratio: true,
-        queue_depth: 5,
-        sample_rate: 44100,
-        channel_count: 2,
-        excludes_current_process_audio: false,
         ..Default::default()
     };
+    let display = SCShareableContent::current().displays.pop().unwrap();
+
     let init_params = InitParams::Display(display);
     let filter = SCContentFilter::new(init_params);
     let mut sc_stream = SCStream::new(filter, config, Capturer {});

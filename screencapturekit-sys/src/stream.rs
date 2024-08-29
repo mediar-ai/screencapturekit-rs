@@ -66,8 +66,12 @@ impl UnsafeSCStream {
         unsafe {
             let (handler, rx) = Self::new_completion_handler();
             let _: () = msg_send!(self, startCaptureWithCompletionHandler: handler);
-            rx.recv()
-                .expect("Should receive a return from completion handler")
+
+            // Add a timeout to prevent indefinite blocking
+            match rx.recv_timeout(std::time::Duration::from_secs(5)) {
+                Ok(result) => result,
+                Err(_) => Err("Capture start timed out".to_string()),
+            }
         }
     }
     pub fn stop_capture(&self) -> Result<(), String> {
@@ -85,9 +89,11 @@ impl UnsafeSCStream {
         let a = UnsafeSCStreamOutputHandler::init(handle);
         unsafe {
             autoreleasepool(|| {
-                let _: () = msg_send!(self, addStreamOutput: a type: output_type sampleHandlerQueue: queue error: std::ptr::null_mut::<Object>());
+                let _: () = msg_send![self, addStreamOutput: a type: output_type sampleHandlerQueue: queue.clone() error: std::ptr::null_mut::<Object>()];
             });
         }
+        // Release the queue after use
+        drop(queue);
     }
 }
 impl Clone for UnsafeSCStream {

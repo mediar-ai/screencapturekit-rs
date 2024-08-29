@@ -10,46 +10,70 @@ use crate::os_types::{
     geometry::CGRect,
     graphics::CGColor,
 };
+// Implement Encode for CGRect
+unsafe impl Encode for CGRect {
+    fn encode() -> Encoding {
+        unsafe { Encoding::from_str("{CGRect={CGPoint=dd}{CGSize=dd}}") }
+    }
+}
+
+// Implement Encode for OSType (assuming it's a typedef for u32)
+unsafe impl Encode for OSType {
+    fn encode() -> Encoding {
+        u32::encode()
+    }
+}
+
+// Implement Encode for CMTime
+unsafe impl Encode for CMTime {
+    fn encode() -> Encoding {
+        unsafe { Encoding::from_str("{CMTime=qiIq}") }
+    }
+}
 
 #[derive(Debug)]
 pub struct UnsafeStreamConfigurationRef;
 unsafe impl Message for UnsafeStreamConfigurationRef {}
 impl From<UnsafeStreamConfiguration> for Id<UnsafeStreamConfigurationRef> {
     fn from(value: UnsafeStreamConfiguration) -> Self {
-        let unsafe_config: UnsafeStreamConfiguration = value.into();
-        unsafe {
-            let alloc: *mut Object = msg_send![UnsafeStreamConfigurationRef::class(), alloc];
-            let obj: *mut Object = msg_send![alloc, init];
+        let unsafe_config: UnsafeStreamConfiguration = value;
+        objc::rc::autoreleasepool(|| unsafe {
+            let cls = UnsafeStreamConfigurationRef::class();
+            let obj: *mut UnsafeStreamConfigurationRef = msg_send![cls, alloc];
+            let obj: *mut UnsafeStreamConfigurationRef = msg_send![obj, init];
+            let obj = Id::from_ptr(obj);
 
-            // Set properties
-            let _: () = msg_send![obj, setWidth: unsafe_config.width];
-            let _: () = msg_send![obj, setHeight: unsafe_config.height];
-            let _: () = msg_send![obj, setCapturesAudio: unsafe_config.captures_audio];
-            let _: () = msg_send![obj, setSourceRect: unsafe_config.source_rect];
-            let _: () = msg_send![obj, setDestinationRect: unsafe_config.destination_rect];
-            let _: () = msg_send![obj, setPixelFormat: unsafe_config.pixel_format];
+            let _: () = msg_send![&*obj, setWidth:unsafe_config.width];
+            let _: () = msg_send![&*obj, setHeight:unsafe_config.height];
+            let _: () = msg_send![&*obj, setCapturesAudio:unsafe_config.captures_audio];
+            let _: () = msg_send![&*obj, setSourceRect:unsafe_config.source_rect];
+            let _: () = msg_send![&*obj, setDestinationRect:unsafe_config.destination_rect];
+            let _: () = msg_send![&*obj, setPixelFormat:unsafe_config.pixel_format];
             let _: () =
-                msg_send![obj, setMinimumFrameInterval: unsafe_config.minimum_frame_interval];
-            let _: () = msg_send![obj, setScalesToFit: unsafe_config.scales_to_fit];
-            let _: () = msg_send![obj, setShowsCursor: unsafe_config.shows_cursor];
-            let _: () = msg_send![obj, setChannelCount: unsafe_config.channel_count];
-            let _: () = msg_send![obj, setSampleRate: unsafe_config.sample_rate];
+                msg_send![&*obj, setMinimumFrameInterval:unsafe_config.minimum_frame_interval];
+            let _: () = msg_send![&*obj, setScalesToFit:unsafe_config.scales_to_fit];
+            let _: () = msg_send![&*obj, setShowsCursor:unsafe_config.shows_cursor];
+            let _: () = msg_send![&*obj, setChannelCount:unsafe_config.channel_count];
+            let _: () = msg_send![&*obj, setSampleRate:unsafe_config.sample_rate];
             let _: () =
-                msg_send![obj, setPreservesAspectRatio: unsafe_config.preserves_aspect_ratio];
+                msg_send![&*obj, setPreservesAspectRatio:unsafe_config.preserves_aspect_ratio];
 
-            if obj.is_null() {
-                panic!("Failed to create UnsafeStreamConfigurationRef");
-            }
-
-            Id::from_ptr(obj as *mut UnsafeStreamConfigurationRef)
-        }
+            obj
+        })
     }
 }
-
 impl INSObject for UnsafeStreamConfigurationRef {
     fn class() -> &'static Class {
         Class::get("SCStreamConfiguration")
                 .expect("Missing SCStreamConfiguration class, check that the binary is linked with ScreenCaptureKit")
+    }
+}
+
+impl Drop for UnsafeStreamConfigurationRef {
+    fn drop(&mut self) {
+        unsafe {
+            let _: () = msg_send![self, release];
+        }
     }
 }
 
