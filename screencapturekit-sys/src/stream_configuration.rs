@@ -15,29 +15,27 @@ use crate::os_types::{
 pub struct UnsafeStreamConfigurationRef;
 unsafe impl Message for UnsafeStreamConfigurationRef {}
 impl From<UnsafeStreamConfiguration> for Id<UnsafeStreamConfigurationRef> {
-    fn from(config: UnsafeStreamConfiguration) -> Self {
+    fn from(value: UnsafeStreamConfiguration) -> Self {
+        let unsafe_config: UnsafeStreamConfiguration = value.into();
         unsafe {
             let alloc: *mut Object = msg_send![UnsafeStreamConfigurationRef::class(), alloc];
-            let obj: *mut Object = objc::rc::autoreleasepool(|| {
-                let obj: *mut Object = msg_send![alloc, init];
+            let obj: *mut Object = msg_send![alloc, init];
 
-                // Set properties
-                let _: () = msg_send![obj, setWidth: config.width];
-                let _: () = msg_send![obj, setHeight: config.height];
-                let _: () = msg_send![obj, setCapturesAudio: config.captures_audio];
-                let _: () = msg_send![obj, setSourceRect: config.source_rect];
-                let _: () = msg_send![obj, setDestinationRect: config.destination_rect];
-                let _: () = msg_send![obj, setPixelFormat: config.pixel_format];
-                let _: () = msg_send![obj, setMinimumFrameInterval: config.minimum_frame_interval];
-                let _: () = msg_send![obj, setScalesToFit: config.scales_to_fit];
-                let _: () = msg_send![obj, setShowsCursor: config.shows_cursor];
-                let _: () = msg_send![obj, setChannelCount: config.channel_count];
-                let _: () = msg_send![obj, setSampleRate: config.sample_rate];
-                // Uncomment if this setter is available in the API
-                // let _: () = msg_send![obj, setPreservesAspectRatio: config.preserves_aspect_ratio];
-
-                obj
-            });
+            // Set properties
+            let _: () = msg_send![obj, setWidth: unsafe_config.width];
+            let _: () = msg_send![obj, setHeight: unsafe_config.height];
+            let _: () = msg_send![obj, setCapturesAudio: unsafe_config.captures_audio];
+            let _: () = msg_send![obj, setSourceRect: unsafe_config.source_rect];
+            let _: () = msg_send![obj, setDestinationRect: unsafe_config.destination_rect];
+            let _: () = msg_send![obj, setPixelFormat: unsafe_config.pixel_format];
+            let _: () =
+                msg_send![obj, setMinimumFrameInterval: unsafe_config.minimum_frame_interval];
+            let _: () = msg_send![obj, setScalesToFit: unsafe_config.scales_to_fit];
+            let _: () = msg_send![obj, setShowsCursor: unsafe_config.shows_cursor];
+            let _: () = msg_send![obj, setChannelCount: unsafe_config.channel_count];
+            let _: () = msg_send![obj, setSampleRate: unsafe_config.sample_rate];
+            let _: () =
+                msg_send![obj, setPreservesAspectRatio: unsafe_config.preserves_aspect_ratio];
 
             if obj.is_null() {
                 panic!("Failed to create UnsafeStreamConfigurationRef");

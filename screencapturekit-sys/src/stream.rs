@@ -1,10 +1,14 @@
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::{
+    mpsc::{channel, Receiver},
+    Arc,
+};
 
 use block::{ConcreteBlock, RcBlock};
 use objc::{
     runtime::{Class, Object},
     Message, *,
 };
+use rc::autoreleasepool;
 
 use crate::{
     stream_error_handler::{UnsafeSCStreamError, UnsafeSCStreamErrorHandler},
@@ -54,7 +58,7 @@ impl UnsafeSCStream {
         let instance = UnsafeSCStream::new();
 
         unsafe {
-            let _: () = msg_send![instance, initWithFilter: filter  configuration: config delegate: UnsafeSCStreamErrorHandler::init(error_handler)];
+            let _: () = msg_send![&*instance, initWithFilter: filter  configuration: config delegate: UnsafeSCStreamErrorHandler::init(error_handler)];
         }
         instance
     }
@@ -74,20 +78,31 @@ impl UnsafeSCStream {
                 .expect("Should receive a return from completion handler")
         }
     }
+
     pub fn add_stream_output(&self, handle: impl UnsafeSCStreamOutput, output_type: u8) {
         let queue = Queue::create("fish.doom.screencapturekit", QueueAttribute::Concurrent);
 
         let a = UnsafeSCStreamOutputHandler::init(handle);
         unsafe {
-            let _: () = msg_send!(self, addStreamOutput: a type: output_type sampleHandlerQueue: queue error: NSObject::new());
+            autoreleasepool(|| {
+                let _: () = msg_send!(self, addStreamOutput: a type: output_type sampleHandlerQueue: queue error: std::ptr::null_mut::<Object>());
+            });
         }
     }
 }
-
+impl Clone for UnsafeSCStream {
+    fn clone(&self) -> Self {
+        unsafe {
+            let _: () = msg_send![self, retain];
+        }
+        UnsafeSCStream { _priv: [] }
+    }
+}
+// Implement Drop for UnsafeSCStream
 impl Drop for UnsafeSCStream {
     fn drop(&mut self) {
-        if let Err(err) = self.stop_capture() {
-            eprintln!("Cannot stop capture: {:?}", err)
+        unsafe {
+            let _: () = msg_send![self, release];
         }
     }
 }
