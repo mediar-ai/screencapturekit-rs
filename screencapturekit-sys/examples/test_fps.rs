@@ -27,7 +27,7 @@ static PREV_TIMESTAMP: Lazy<AtomicI64> = Lazy::new(|| AtomicI64::new(0));
 
 impl UnsafeSCStreamOutput for TestHandler {
     fn did_output_sample_buffer(&self, sample: Id<CMSampleBufferRef>, _of_type: u8) {
-        if let SCFrameStatus::Complete = sample.get_frame_info().status() {
+        if let SCFrameStatus::Complete = sample.get_frame_info().unwrap().status() {
             let timescale_ms = 1000000;
             let prev_timestamp = PREV_TIMESTAMP.load(Ordering::Relaxed);
             let new_timestamp = sample.get_presentation_timestamp().value / timescale_ms;

@@ -1,4 +1,4 @@
-use std::sync::mpsc::{channel, Receiver, RecvError};
+use std::sync::mpsc::{channel, Receiver};
 
 use crate::{
     macros::get_string,
@@ -122,22 +122,27 @@ pub struct ExcludingDesktopWindowsConfig<'a> {
 #[derive(Debug)]
 pub struct UnsafeSCShareableContent;
 unsafe impl Message for UnsafeSCShareableContent {}
+struct BlockWrapper(RcBlock<(*mut UnsafeSCShareableContent, *mut Object), ()>);
 
-type CompletionHandlerBlock = RcBlock<(*mut UnsafeSCShareableContent, *mut Object), ()>;
+impl Drop for BlockWrapper {
+    fn drop(&mut self) {
+        // The RcBlock will be automatically dropped here
+    }
+}
+
 impl UnsafeSCShareableContent {
-    unsafe fn new_completion_handler(
-    ) -> (CompletionHandlerBlock, Receiver<Result<Id<Self>, String>>) {
+    unsafe fn new_completion_handler() -> (BlockWrapper, Receiver<Result<Id<Self>, String>>) {
         let (tx, rx) = channel();
         let handler = ConcreteBlock::new(move |sc: *mut Self, error: *mut Object| {
             if error.is_null() {
                 tx.send(Ok(Id::from_ptr(sc)))
                     .expect("could create owned pointer for UnsafeSCShareableContent");
             } else {
-                let code: *mut NSString = msg_send![error, localizedDescription];
-                tx.send(Err((*code).as_str().to_string()));
+                let code: Id<NSString> = msg_send![error, localizedDescription];
+                let _ = tx.send(Err(code.as_str().to_string()));
             }
         });
-        (handler.copy(), rx)
+        (BlockWrapper(handler.copy()), rx)
     }
 
     pub fn get_with_config(config: &ExcludingDesktopWindowsConfig) -> Result<Id<Self>, String> {
@@ -148,26 +153,26 @@ impl UnsafeSCShareableContent {
                     class!(SCShareableContent),
                     getShareableContentExcludingDesktopWindows: config.exclude_desktop_windows as u8
                     onScreenWindowsOnly: 0
-                    completionHandler: handler
+                    completionHandler: &*handler.0
                 ],
 
                 OnScreenOnlySettings::AboveWindow(ref w) => msg_send![
                     class!(SCShareableContent),
                     getShareableContentExcludingDesktopWindows: config.exclude_desktop_windows as u8
                     onScreenWindowsOnlyAboveWindow: &w
-                    completionHandler: handler
+                    completionHandler: &*handler.0
                 ],
                 OnScreenOnlySettings::BelowWindow(ref w) => msg_send![
                     class!(SCShareableContent),
                     getShareableContentExcludingDesktopWindows: config.exclude_desktop_windows as u8
                     onScreenWindowsOnlyBelowWindow: &w
-                    completionHandler: handler
+                    completionHandler: &*handler.0
                 ],
                 OnScreenOnlySettings::OnlyOnScreen => msg_send![
                     class!(SCShareableContent),
                     getShareableContentExcludingDesktopWindows: config.exclude_desktop_windows as u8
                     onScreenWindowsOnly: 1
-                    completionHandler: handler
+                    completionHandler: &*handler.0
                 ],
             }
             rx.recv().unwrap_or(Err("Failed to recv".to_string()))
@@ -178,7 +183,7 @@ impl UnsafeSCShareableContent {
             let (handler, rx) = Self::new_completion_handler();
             let _: () = msg_send![
                 class!(SCShareableContent),
-                getShareableContentWithCompletionHandler: handler
+                getShareableContentWithCompletionHandler: &*handler.0
             ];
 
             rx.recv().unwrap_or(Err("Failed to recv".to_string()))

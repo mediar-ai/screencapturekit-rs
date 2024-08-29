@@ -63,7 +63,7 @@ impl UnsafeSCStreamOutput for StoreAudioHandler {
             }
         }
 
-        println!("status={:?}", sample.get_frame_info().status());
+        println!("status={:?}", sample.get_frame_info().unwrap().status());
     }
 }
 
