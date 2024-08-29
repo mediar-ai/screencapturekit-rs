@@ -2,6 +2,7 @@ use objc::{msg_send, runtime::Class, *};
 
 use objc_foundation::INSObject;
 use objc_id::Id;
+use runtime::Object;
 
 use crate::os_types::{
     base::{CMTime, OSType, UInt32, BOOL},
@@ -14,25 +15,36 @@ use crate::os_types::{
 pub struct UnsafeStreamConfigurationRef;
 unsafe impl Message for UnsafeStreamConfigurationRef {}
 impl From<UnsafeStreamConfiguration> for Id<UnsafeStreamConfigurationRef> {
-    fn from(value: UnsafeStreamConfiguration) -> Self {
-        let sys_ref = UnsafeStreamConfigurationRef::new();
+    fn from(config: UnsafeStreamConfiguration) -> Self {
         unsafe {
-            let _: () = msg_send![sys_ref, setWidth: value.width];
-            let _: () = msg_send![sys_ref, setHeight: value.height];
-            let _: () = msg_send![sys_ref, setCapturesAudio: value.captures_audio];
-            let _: () = msg_send![sys_ref, setSourceRect: value.source_rect];
-            let _: () = msg_send![sys_ref, setDestinationRect: value.destination_rect];
-            let _: () = msg_send![sys_ref, setPixelFormat: value.pixel_format];
-            let _: () = msg_send![sys_ref, setMinimumFrameInterval: value.minimum_frame_interval];
-            let _: () = msg_send![sys_ref, setScalesToFit: value.scales_to_fit];
-            let _: () = msg_send![sys_ref, setShowsCursor: value.shows_cursor];
-            let _: () = msg_send![sys_ref, setChannelCount: value.channel_count];
-            let _: () = msg_send![sys_ref, setSampleRate: value.sample_rate];
-            // let _: () =
-            // msg_send![sys_ref, setSetPreservesAspectRatio: value.preserves_aspect_ratio];
-        }
+            let alloc: *mut Object = msg_send![UnsafeStreamConfigurationRef::class(), alloc];
+            let obj: *mut Object = objc::rc::autoreleasepool(|| {
+                let obj: *mut Object = msg_send![alloc, init];
 
-        sys_ref
+                // Set properties
+                let _: () = msg_send![obj, setWidth: config.width];
+                let _: () = msg_send![obj, setHeight: config.height];
+                let _: () = msg_send![obj, setCapturesAudio: config.captures_audio];
+                let _: () = msg_send![obj, setSourceRect: config.source_rect];
+                let _: () = msg_send![obj, setDestinationRect: config.destination_rect];
+                let _: () = msg_send![obj, setPixelFormat: config.pixel_format];
+                let _: () = msg_send![obj, setMinimumFrameInterval: config.minimum_frame_interval];
+                let _: () = msg_send![obj, setScalesToFit: config.scales_to_fit];
+                let _: () = msg_send![obj, setShowsCursor: config.shows_cursor];
+                let _: () = msg_send![obj, setChannelCount: config.channel_count];
+                let _: () = msg_send![obj, setSampleRate: config.sample_rate];
+                // Uncomment if this setter is available in the API
+                // let _: () = msg_send![obj, setPreservesAspectRatio: config.preserves_aspect_ratio];
+
+                obj
+            });
+
+            if obj.is_null() {
+                panic!("Failed to create UnsafeStreamConfigurationRef");
+            }
+
+            Id::from_ptr(obj as *mut UnsafeStreamConfigurationRef)
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 use objc::{runtime::Class, *};
 use objc_foundation::{INSArray, INSObject, NSArray};
 use objc_id::{Id, ShareId, Shared};
+use runtime::Object;
 
 use super::shareable_content::{UnsafeSCDisplay, UnsafeSCRunningApplication, UnsafeSCWindow};
 
@@ -9,7 +10,6 @@ pub struct UnsafeContentFilter {
     __priv: u8,
 }
 unsafe impl Message for UnsafeContentFilter {}
-impl UnsafeContentFilter {}
 
 impl INSObject for UnsafeContentFilter {
     fn class() -> &'static Class {
@@ -38,46 +38,54 @@ pub enum UnsafeInitParams {
 
 impl UnsafeContentFilter {
     pub fn init(params: UnsafeInitParams) -> Id<Self> {
-        let content_filter = UnsafeContentFilter::new();
         unsafe {
-            match params {
-                UnsafeInitParams::Display(display) => {
-                    let _: () = msg_send![content_filter, initWithDisplay: display excludingWindows: NSArray::from_slice(&[] as &[Id<UnsafeSCWindow, Shared>])];
-                }
-                UnsafeInitParams::DesktopIndependentWindow(window) => {
-                    let _: () = msg_send![content_filter, initWithDesktopIndependentWindow: window];
-                }
+            let alloc: *mut Object = msg_send![Self::class(), alloc];
+            let init_result: *mut Object = match params {
+                UnsafeInitParams::Display(display) => objc::rc::autoreleasepool(
+                    || msg_send![alloc, initWithDisplay:display excludingWindows:NSArray::from_slice(&[] as &[Id<UnsafeSCWindow, Shared>])],
+                ),
+                UnsafeInitParams::DesktopIndependentWindow(window) => objc::rc::autoreleasepool(
+                    || msg_send![alloc, initWithDesktopIndependentWindow:window],
+                ),
                 UnsafeInitParams::DisplayIncludingWindows(display, windows) => {
-                    let _: () = msg_send![content_filter, initWithDisplay : display includingWindows: NSArray::from_vec(windows)];
+                    objc::rc::autoreleasepool(
+                        || msg_send![alloc, initWithDisplay:display includingWindows:NSArray::from_vec(windows)],
+                    )
                 }
                 UnsafeInitParams::DisplayExcludingWindows(display, windows) => {
-                    let _: () = msg_send![content_filter, initWithDisplay : display excludingWindows: NSArray::from_vec(windows)];
+                    objc::rc::autoreleasepool(
+                        || msg_send![alloc, initWithDisplay:display excludingWindows:NSArray::from_vec(windows)],
+                    )
                 }
                 UnsafeInitParams::DisplayIncludingApplicationsExceptingWindows(
                     display,
                     applications,
                     windows,
-                ) => {
-                    let _: () = msg_send![content_filter, initWithDisplay : display includingApplications: NSArray::from_vec(applications) exceptingWindows:  NSArray::from_vec(windows)];
-                }
+                ) => objc::rc::autoreleasepool(
+                    || msg_send![alloc, initWithDisplay:display includingApplications:NSArray::from_vec(applications) exceptingWindows:NSArray::from_vec(windows)],
+                ),
                 UnsafeInitParams::DisplayExcludingApplicationsExceptingWindows(
                     display,
                     applications,
                     windows,
-                ) => {
-                    let _: () = msg_send![content_filter, initWithDisplay : display excludingApplications : NSArray::from_vec(applications) exceptingWindows: NSArray::from_vec(windows)];
-                }
+                ) => objc::rc::autoreleasepool(
+                    || msg_send![alloc, initWithDisplay:display excludingApplications:NSArray::from_vec(applications) exceptingWindows:NSArray::from_vec(windows)],
+                ),
+            };
+
+            if init_result.is_null() {
+                panic!("Failed to initialize UnsafeContentFilter");
             }
-        };
-        content_filter
+
+            Id::from_ptr(init_result as *mut Self)
+        }
     }
 }
+
 #[cfg(test)]
 mod test_content_filter {
-
-    use crate::shareable_content::UnsafeSCShareableContent;
-
     use super::*;
+    use crate::shareable_content::UnsafeSCShareableContent;
 
     #[test]
     #[cfg_attr(feature = "ci", ignore)]
@@ -106,7 +114,7 @@ mod test_content_filter {
             ),
         );
         UnsafeContentFilter::init(
-            UnsafeInitParams::DisplayIncludingApplicationsExceptingWindows(
+            UnsafeInitParams::DisplayExcludingApplicationsExceptingWindows(
                 display.clone(),
                 applications.clone(),
                 windows.clone(),
