@@ -31,38 +31,51 @@ impl StreamErrorHandler for Capturer {
 }
 
 impl StreamOutput for Capturer {
-    fn did_output_sample_buffer(&self, sample: CMSampleBuffer, of_type: SCStreamOutputType) {
+    fn did_output_sample_buffer(&self, _sample: CMSampleBuffer, _of_type: SCStreamOutputType) {
         println!("New frame recvd");
     }
 }
 fn main() {
     println!("Starting");
-    // Create SCShareableContent and SCContentFilter
-    let display = SCShareableContent::current().displays.pop().unwrap();
-    let windows = SCShareableContent::current().windows;
-    let _filter = SCContentFilter::new(InitParams::DisplayExcludingWindows(display, windows));
-    let display = SCShareableContent::current().displays.pop().unwrap();
-    let display = SCShareableContent::current().displays.pop().unwrap();
 
-    let _filter = SCContentFilter::new(InitParams::Display(display));
-    let display = SCShareableContent::current().displays.pop().unwrap();
+    for _ in 0..1 {
+        // Repeat the process multiple times to amplify leaks
+        // Create SCShareableContent and SCContentFilter
+        let display = SCShareableContent::current().displays.pop().unwrap();
+        let windows = SCShareableContent::current().windows;
 
-    let _filter = SCContentFilter::new(InitParams::DisplayExcludingWindows(display, vec![]));
-    
-    let config = SCStreamConfiguration {
-        width: 1920,
-        height: 1080,
-        ..Default::default()
-    };
-    let display = SCShareableContent::current().displays.pop().unwrap();
+        // Create multiple filters
+        let _filter1 = SCContentFilter::new(InitParams::DisplayExcludingWindows(
+            display.clone(),
+            windows,
+        ));
+        let _filter2 = SCContentFilter::new(InitParams::Display(display.clone()));
+        let _filter3 =
+            SCContentFilter::new(InitParams::DisplayExcludingWindows(display.clone(), vec![]));
 
-    let init_params = InitParams::Display(display);
-    let filter = SCContentFilter::new(init_params);
-    let mut sc_stream = SCStream::new(filter, config, Capturer {});
-    let output = Capturer {};
-    sc_stream.add_output(output, SCStreamOutputType::Audio);
-    let playing = false;
-    // let stream = Stream::new(StreamInner { sc_stream, playing });
+        // Create multiple configurations
+        let _config1 = SCStreamConfiguration {
+            width: 1920,
+            height: 1080,
+            ..Default::default()
+        };
+        let _config2 = SCStreamConfiguration {
+            width: 1280,
+            height: 720,
+            ..Default::default()
+        };
+
+        // Create and immediately drop streams
+        let init_params = InitParams::Display(display);
+        let filter = SCContentFilter::new(init_params);
+        let mut sc_stream = SCStream::new(filter, _config1, Capturer {});
+        let output = Capturer {};
+        sc_stream.add_output(output, SCStreamOutputType::Screen);
+
+        // Force drop of sc_stream
+        drop(sc_stream);
+    }
+
     // Get the current process ID
     let pid = std::process::id();
 

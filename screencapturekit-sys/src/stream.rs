@@ -18,7 +18,10 @@ use crate::{
 use super::{
     content_filter::UnsafeContentFilter, stream_configuration::UnsafeStreamConfigurationRef,
 };
-use dispatch::{Queue, QueueAttribute};
+use dispatch::{
+    ffi::{dispatch_get_global_queue, DISPATCH_QUEUE_PRIORITY_DEFAULT},
+    Queue, QueueAttribute,
+};
 use objc_foundation::{INSObject, INSString, NSObject, NSString};
 use objc_id::Id;
 
@@ -84,18 +87,14 @@ impl UnsafeSCStream {
     }
 
     pub fn add_stream_output(&self, handle: impl UnsafeSCStreamOutput, output_type: u8) {
-        let queue = Queue::create("fish.doom.screencapturekit", QueueAttribute::Concurrent);
-
-        let a = UnsafeSCStreamOutputHandler::init(handle);
         unsafe {
-            autoreleasepool(|| {
-                let _: () = msg_send![self, addStreamOutput: a type: output_type sampleHandlerQueue: queue.clone() error: std::ptr::null_mut::<Object>()];
-            });
+            let queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+            let a = UnsafeSCStreamOutputHandler::init(handle);
+            let _: () = msg_send![self, addStreamOutput: a type: output_type sampleHandlerQueue: queue error: std::ptr::null_mut::<Object>()];
         }
-        // Release the queue after use
-        drop(queue);
     }
 }
+
 impl Clone for UnsafeSCStream {
     fn clone(&self) -> Self {
         unsafe {

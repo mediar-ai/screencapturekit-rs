@@ -36,8 +36,8 @@ pub struct UnsafeStreamConfigurationRef;
 unsafe impl Message for UnsafeStreamConfigurationRef {}
 impl From<UnsafeStreamConfiguration> for Id<UnsafeStreamConfigurationRef> {
     fn from(value: UnsafeStreamConfiguration) -> Self {
-        let unsafe_config: UnsafeStreamConfiguration = value;
         objc::rc::autoreleasepool(|| unsafe {
+            let unsafe_config: UnsafeStreamConfiguration = value;
             let cls = UnsafeStreamConfigurationRef::class();
             let obj: *mut UnsafeStreamConfigurationRef = msg_send![cls, alloc];
             let obj: *mut UnsafeStreamConfigurationRef = msg_send![obj, init];
